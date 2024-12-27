@@ -8,10 +8,22 @@ fi
 
 # Set the target IP range and port from the arguments
 TARGET_IP_RANGE="$1"
-PORT="$2"
+PORT_ARG="$2"
 
 # Extract the port number from the argument (e.g., -p80 -> 80)
-PORT_NUMBER="${PORT#-p}"
+PORT_NUMBER=$(echo $PORT_ARG | sed 's/-p//')
+NPORT="$PORT_NUMBER"
+
+# Validate the port number
+if ! [[ $PORT_NUMBER =~ ^[0-9]+$ ]]; then
+    echo "Invalid port specification: $PORT_ARG"
+    exit 1
+fi
+
+# Debugging output to confirm values
+echo "Target IP Range: $TARGET_IP_RANGE"
+echo "Port Number: $PORT_NUMBER"
+echo "Nmap Port Number: $NPORT"
 
 # Set the output files
 MASSCAN_OUTPUT="masscan_results.txt"
@@ -28,14 +40,15 @@ awk '/open/ {print $4}' $MASSCAN_OUTPUT > ips.txt
 # Function to run nmap on each IP
 nmap_scan() {
     local ip=$1
-    nmap -p $PORT_NUMBER --script=banner -T5 -n --min-rate=1000 -oN "nmap_ip_$ip.txt" $ip
+    local port=$2
+    nmap -p$port --script=banner -T5 -n --min-rate=1000 -oN "nmap_ip_$ip.txt" $ip
 }
 
 export -f nmap_scan
 
 # Run nmap in parallel for the extracted IPs
 echo "Running nmap in parallel for the extracted IPs..."
-parallel -j 4 nmap_scan :::: ips.txt
+parallel -j 4 nmap_scan {1} $PORT_NUMBER :::: ips.txt
 
 # Combine individual nmap output files into one
 cat nmap_ip_*.txt > $NMAP_OUTPUT
