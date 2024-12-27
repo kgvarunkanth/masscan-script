@@ -21,9 +21,9 @@ masscan -p80 $TARGET_IP_RANGE --rate=1000 -oL $MASSCAN_OUTPUT
 echo "Extracting IPs from masscan results..."
 awk '/open/ {print $4}' $MASSCAN_OUTPUT > ips.txt
 
-# Run nmap to scan the banner for the extracted IPs
+# Run nmap to scan the banner for the extracted IPs with optimizations
 echo "Running nmap to scan the banner of the extracted IPs..."
-nmap -iL ips.txt -p 80 --script=banner -oN $NMAP_OUTPUT
+nmap -iL ips.txt -p 80 --script=banner -T5 -n --min-rate=1000 -oN $NMAP_OUTPUT
 
 # Clean up
 rm ips.txt
