@@ -21,12 +21,23 @@ masscan -p80 $TARGET_IP_RANGE --rate=1000 -oL $MASSCAN_OUTPUT
 echo "Extracting IPs from masscan results..."
 awk '/open/ {print $4}' $MASSCAN_OUTPUT > ips.txt
 
-# Run nmap to scan the banner for the extracted IPs with optimizations
-echo "Running nmap to scan the banner of the extracted IPs..."
-nmap -iL ips.txt -p 80 --script=banner -T5 -n --min-rate=1000 -oN $NMAP_OUTPUT
+# Function to run nmap on each IP
+nmap_scan() {
+    local ip=$1
+    nmap -p 80 --script=banner -T5 -n --min-rate=1000 -oN "nmap_$ip.txt" $ip
+}
+
+export -f nmap_scan
+
+# Run nmap in parallel for the extracted IPs
+echo "Running nmap in parallel for the extracted IPs..."
+parallel -j 4 nmap_scan :::: ips.txt
+
+# Combine individual nmap output files into one
+cat nmap_*.txt > $NMAP_OUTPUT
 
 # Clean up
-rm ips.txt
+rm ips.txt nmap_*.txt
 
 echo "Scan complete. Results saved in $NMAP_OUTPUT"
 
