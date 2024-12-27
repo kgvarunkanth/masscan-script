@@ -1,30 +1,34 @@
 #!/bin/bash
 
-# Check if an argument was provided
-if [ -z "$1" ]; then
-    echo "Usage: $0 <target_ip_range>"
+# Check if sufficient arguments were provided
+if [ $# -lt 2 ]; then
+    echo "Usage: $0 <target_ip_range> -p<port>"
     exit 1
 fi
 
-# Set the target IP range from the argument
+# Set the target IP range and port from the arguments
 TARGET_IP_RANGE="$1"
+PORT="$2"
+
+# Extract the port number from the argument (e.g., -p80 -> 80)
+PORT_NUMBER="${PORT#-p}"
 
 # Set the output files
 MASSCAN_OUTPUT="masscan_results.txt"
 NMAP_OUTPUT="nmap_results.txt"
 
-# Run masscan to scan for port 80
-echo "Running masscan to scan for port 80..."
-masscan -p80 $TARGET_IP_RANGE --rate=1000 -oL $MASSCAN_OUTPUT
+# Run masscan to scan for the specified port
+echo "Running masscan to scan for port $PORT_NUMBER..."
+masscan -p$PORT_NUMBER $TARGET_IP_RANGE --rate=1000 -oL $MASSCAN_OUTPUT
 
-# Extract IPs with open port 80 from masscan results
+# Extract IPs with the specified port open from masscan results
 echo "Extracting IPs from masscan results..."
 awk '/open/ {print $4}' $MASSCAN_OUTPUT > ips.txt
 
 # Function to run nmap on each IP
 nmap_scan() {
     local ip=$1
-    nmap -p 80 --script=banner -T5 -n --min-rate=1000 -oN "nmap_$ip.txt" $ip
+    nmap -p $PORT_NUMBER --script=banner -T5 -n --min-rate=1000 -oN "nmap_$ip.txt" $ip
 }
 
 export -f nmap_scan
