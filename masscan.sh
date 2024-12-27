@@ -28,7 +28,7 @@ awk '/open/ {print $4}' $MASSCAN_OUTPUT > ips.txt
 # Function to run nmap on each IP
 nmap_scan() {
     local ip=$1
-    nmap -p $PORT_NUMBER --script=banner -T5 -n --min-rate=1000 -oN "nmap_$ip.txt" $ip
+    nmap -p $PORT_NUMBER --script=banner -T5 -n --min-rate=1000 -oN "nmap_ip_$ip.txt" $ip
 }
 
 export -f nmap_scan
@@ -38,10 +38,10 @@ echo "Running nmap in parallel for the extracted IPs..."
 parallel -j 4 nmap_scan :::: ips.txt
 
 # Combine individual nmap output files into one
-cat nmap_*.txt > $NMAP_OUTPUT
+cat nmap_ip_*.txt > $NMAP_OUTPUT
 
 # Clean up
-rm ips.txt nmap_*.txt
+rm ips.txt nmap_ip_*.txt
 
 echo "Scan complete. Results saved in $NMAP_OUTPUT"
 
